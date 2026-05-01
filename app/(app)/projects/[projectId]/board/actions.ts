@@ -249,8 +249,10 @@ export async function addChecklistItemAction(input: {
     .where(eq(checklistItems.cardId, input.cardId))
     .orderBy(asc(checklistItems.position));
 
+  const itemId = randomUUID();
+
   await db.insert(checklistItems).values({
-    id: randomUUID(),
+    id: itemId,
     cardId: input.cardId,
     title: input.title,
     position: existing.length,
@@ -259,6 +261,12 @@ export async function addChecklistItemAction(input: {
   await syncChecklistCardCompletion(input.cardId);
 
   revalidatePath(`/projects/${input.projectId}/board`);
+
+  return {
+    id: itemId,
+    title: input.title,
+    isCompleted: false,
+  };
 }
 
 export async function deleteChecklistItemAction(input: {

@@ -411,8 +411,64 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
                         if (!text.trim()) {
                           return;
                         }
-                        await addChecklistItemAction({ projectId, cardId: card.id, title: text.trim() });
-                        toast.success("Checklist agregado");
+
+                        const title = text.trim();
+                        const tempId = `tmp-check-${Math.random()}`;
+
+                        setCards((prev) =>
+                          prev.map((item) =>
+                            item.id !== card.id
+                              ? item
+                              : {
+                                  ...item,
+                                  isCompleted: false,
+                                  checklist: [
+                                    ...item.checklist,
+                                    {
+                                      id: tempId,
+                                      title,
+                                      isCompleted: false,
+                                    },
+                                  ],
+                                }
+                          )
+                        );
+
+                        try {
+                          const created = await addChecklistItemAction({ projectId, cardId: card.id, title });
+
+                          setCards((prev) =>
+                            prev.map((item) =>
+                              item.id !== card.id
+                                ? item
+                                : {
+                                    ...item,
+                                    checklist: item.checklist.map((check) =>
+                                      check.id === tempId ? { ...check, id: created.id } : check
+                                    ),
+                                  }
+                            )
+                          );
+
+                          toast.success("Checklist agregado");
+                        } catch {
+                          setCards((prev) =>
+                            prev.map((item) => {
+                              if (item.id !== card.id) {
+                                return item;
+                              }
+
+                              const nextChecklist = item.checklist.filter((check) => check.id !== tempId);
+                              return {
+                                ...item,
+                                checklist: nextChecklist,
+                                isCompleted:
+                                  nextChecklist.length > 0 && nextChecklist.every((check) => check.isCompleted),
+                              };
+                            })
+                          );
+                          toast.error("No fue posible agregar el item");
+                        }
                       }}
                       onDeleteChecklist={async (itemId) => {
                         await deleteChecklistItemAction({ projectId, itemId });
@@ -603,7 +659,7 @@ function SortableCard({ card, onToggleCardComplete, onDelete, onToggleChecklist,
       <div className="mb-2 flex items-start justify-between gap-2">
         <button
           type="button"
-          className={`cursor-grab rounded-md border border-[var(--line)] px-2 py-1 text-left text-base font-semibold tracking-tight ${
+          className={`cursor-grab rounded-md border border-[var(--line)] px-2 py-1 text-left text-[0.92rem] font-semibold tracking-tight ${
             card.isCompleted ? "text-[var(--muted)] line-through" : "text-[var(--ink)]"
           }`}
           {...attributes}
@@ -656,10 +712,11 @@ function SortableCard({ card, onToggleCardComplete, onDelete, onToggleChecklist,
                 </label>
                 <button
                   type="button"
-                  className="text-red-300 hover:text-red-200"
+                  aria-label="Eliminar item"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-400/35 bg-red-500/10 text-sm font-semibold leading-none text-red-200 transition hover:-translate-y-0.5 hover:bg-red-500/20"
                   onClick={() => onDeleteChecklist(item.id)}
                 >
-                  x
+                  ×
                 </button>
               </div>
             ))}
@@ -688,14 +745,11 @@ function SortableCard({ card, onToggleCardComplete, onDelete, onToggleChecklist,
         </div>
       ) : null}
 
-      <div className="mt-3 flex items-center justify-between border-t border-[var(--line)] pt-2">
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
-          {card.isCompleted ? "Completada" : "Arrastra para mover"}
-        </span>
+      <div className="mt-3 flex items-center justify-end border-t border-[var(--line)] pt-2">
         <button
           onClick={(event) => onDelete(event.currentTarget)}
           type="button"
-          className="text-xs font-medium text-red-300 transition hover:text-red-200"
+          className="rounded-md border border-red-400/45 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition hover:-translate-y-0.5 hover:bg-red-500/20"
         >
           Eliminar
         </button>
