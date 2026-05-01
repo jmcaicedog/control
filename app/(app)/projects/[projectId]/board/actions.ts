@@ -11,6 +11,20 @@ import { cardSchema } from "@/lib/validators";
 type CardColumn = "todo" | "doing" | "in_review" | "done";
 type CardType = "simple" | "checklist";
 
+async function syncChecklistCardCompletion(cardId: string) {
+  const items = await db
+    .select({ isCompleted: checklistItems.isCompleted })
+    .from(checklistItems)
+    .where(eq(checklistItems.cardId, cardId));
+
+  const shouldComplete = items.length > 0 && items.every((item) => item.isCompleted);
+
+  await db
+    .update(cards)
+    .set({ isCompleted: shouldComplete, updatedAt: new Date() })
+    .where(eq(cards.id, cardId));
+}
+
 async function assertProjectOwnership(projectId: string) {
   const user = await getCurrentUser();
   if (!user) {
@@ -54,6 +68,7 @@ export async function createCardAction(input: {
     title: parsed.title,
     description: parsed.description || "",
     type: parsed.type,
+    isCompleted: false,
     columnName: parsed.columnName,
     position: existing.length,
   });
@@ -68,6 +83,35 @@ export async function createCardAction(input: {
       }))
     );
   }
+
+  revalidatePath(`/projects/${input.projectId}/board`);
+}
+
+export async function toggleCardCompletionAction(input: {
+  projectId: string;
+  cardId: string;
+  isCompleted: boolean;
+}) {
+  await assertProjectOwnership(input.projectId);
+
+  const [card] = await db
+    .select({ id: cards.id, type: cards.type })
+    .from(cards)
+    .where(and(eq(cards.id, input.cardId), eq(cards.projectId, input.projectId)))
+    .limit(1);
+
+  if (!card) {
+    throw new Error("Tarjeta no encontrada");
+  }
+
+  if (card.type !== "simple") {
+    throw new Error("Las tarjetas checklist se completan automáticamente por progreso");
+  }
+
+  await db
+    .update(cards)
+    .set({ isCompleted: input.isCompleted, updatedAt: new Date() })
+    .where(and(eq(cards.id, input.cardId), eq(cards.projectId, input.projectId)));
 
   revalidatePath(`/projects/${input.projectId}/board`);
 }
@@ -171,10 +215,23 @@ export async function toggleChecklistItemAction(input: {
 }) {
   await assertProjectOwnership(input.projectId);
 
+  const [item] = await db
+    .select({ cardId: checklistItems.cardId })
+    .from(checklistItems)
+    .innerJoin(cards, eq(checklistItems.cardId, cards.id))
+    .where(and(eq(checklistItems.id, input.itemId), eq(cards.projectId, input.projectId)))
+    .limit(1);
+
+  if (!item) {
+    throw new Error("Item no encontrado");
+  }
+
   await db
     .update(checklistItems)
     .set({ isCompleted: input.isCompleted })
     .where(eq(checklistItems.id, input.itemId));
+
+  await syncChecklistCardCompletion(item.cardId);
 
   revalidatePath(`/projects/${input.projectId}/board`);
 }
@@ -199,6 +256,8 @@ export async function addChecklistItemAction(input: {
     position: existing.length,
   });
 
+  await syncChecklistCardCompletion(input.cardId);
+
   revalidatePath(`/projects/${input.projectId}/board`);
 }
 
@@ -208,6 +267,20 @@ export async function deleteChecklistItemAction(input: {
 }) {
   await assertProjectOwnership(input.projectId);
 
+  const [item] = await db
+    .select({ cardId: checklistItems.cardId })
+    .from(checklistItems)
+    .innerJoin(cards, eq(checklistItems.cardId, cards.id))
+    .where(and(eq(checklistItems.id, input.itemId), eq(cards.projectId, input.projectId)))
+    .limit(1);
+
+  if (!item) {
+    throw new Error("Item no encontrado");
+  }
+
   await db.delete(checklistItems).where(eq(checklistItems.id, input.itemId));
+
+  await syncChecklistCardCompletion(item.cardId);
+
   revalidatePath(`/projects/${input.projectId}/board`);
 }

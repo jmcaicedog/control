@@ -20,6 +20,7 @@ import {
   deleteCardAction,
   deleteChecklistItemAction,
   moveCardAction,
+  toggleCardCompletionAction,
   toggleChecklistItemAction,
 } from "@/app/(app)/projects/[projectId]/board/actions";
 
@@ -39,6 +40,7 @@ type BoardCard = {
   columnName: BoardColumn;
   position: number;
   type: CardType;
+  isCompleted: boolean;
   checklist: ChecklistItem[];
 };
 
@@ -208,6 +210,7 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
         type,
         columnName: targetColumn,
         position: byColumn[targetColumn].length,
+        isCompleted: false,
         checklist: checklistItems.map((item, i) => ({
           id: `${temporaryId}-${i}`,
           title: item,
@@ -357,6 +360,23 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
                     <SortableCard
                       key={card.id}
                       card={card}
+                      onToggleCardComplete={(value) => {
+                        setCards((prev) =>
+                          prev.map((item) => (item.id === card.id ? { ...item, isCompleted: value } : item))
+                        );
+
+                        startTransition(async () => {
+                          try {
+                            await toggleCardCompletionAction({
+                              projectId,
+                              cardId: card.id,
+                              isCompleted: value,
+                            });
+                          } catch {
+                            toast.error("No fue posible actualizar el estado de la tarea");
+                          }
+                        });
+                      }}
                       onDelete={(trigger) => {
                         lastDeleteTriggerRef.current = trigger;
                         setCardToDelete({ id: card.id, title: card.title });
@@ -368,9 +388,18 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
                               ? item
                               : {
                                   ...item,
-                                  checklist: item.checklist.map((check) =>
-                                    check.id === itemId ? { ...check, isCompleted: value } : check
-                                  ),
+                                  checklist: (() => {
+                                    const nextChecklist = item.checklist.map((check) =>
+                                      check.id === itemId ? { ...check, isCompleted: value } : check
+                                    );
+                                    return nextChecklist;
+                                  })(),
+                                  isCompleted: (() => {
+                                    const nextChecklist = item.checklist.map((check) =>
+                                      check.id === itemId ? { ...check, isCompleted: value } : check
+                                    );
+                                    return nextChecklist.length > 0 && nextChecklist.every((check) => check.isCompleted);
+                                  })(),
                                 }
                           )
                         );
@@ -391,7 +420,14 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
                           prev.map((item) =>
                             item.id !== card.id
                               ? item
-                              : { ...item, checklist: item.checklist.filter((check) => check.id !== itemId) }
+                              : (() => {
+                                  const nextChecklist = item.checklist.filter((check) => check.id !== itemId);
+                                  return {
+                                    ...item,
+                                    checklist: nextChecklist,
+                                    isCompleted: nextChecklist.length > 0 && nextChecklist.every((check) => check.isCompleted),
+                                  };
+                                })()
                           )
                         );
                       }}
@@ -534,13 +570,14 @@ function DroppableColumn({
 
 type SortableCardProps = {
   card: BoardCard;
+  onToggleCardComplete: (value: boolean) => void;
   onDelete: (trigger: HTMLButtonElement) => void;
   onToggleChecklist: (itemId: string, value: boolean) => void;
   onAddChecklist: (title: string) => Promise<void>;
   onDeleteChecklist: (itemId: string) => Promise<void>;
 };
 
-function SortableCard({ card, onDelete, onToggleChecklist, onAddChecklist, onDeleteChecklist }: SortableCardProps) {
+function SortableCard({ card, onToggleCardComplete, onDelete, onToggleChecklist, onAddChecklist, onDeleteChecklist }: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const [newItem, setNewItem] = useState("");
 
@@ -550,32 +587,62 @@ function SortableCard({ card, onDelete, onToggleChecklist, onAddChecklist, onDel
   };
 
   const completed = card.checklist.filter((item) => item.isCompleted).length;
+  const checklistProgress = card.checklist.length > 0 ? Math.round((completed / card.checklist.length) * 100) : 0;
 
   return (
     <article
       ref={setNodeRef}
       style={style}
-      className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-3 shadow-[0_6px_16px_rgba(1,8,22,0.28)]"
+      className={`rounded-lg border p-3 shadow-[0_6px_16px_rgba(1,8,22,0.28)] ${
+        card.isCompleted
+          ? "border-[var(--brand)] bg-[color:rgba(19,212,197,0.09)]"
+          : "border-[var(--line)] bg-[var(--surface-2)]"
+      }`}
       data-dragging={isDragging}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <button
           type="button"
-          className="cursor-grab rounded-md border border-[var(--line)] px-2 py-1 text-left text-base font-semibold tracking-tight text-[var(--ink)]"
+          className={`cursor-grab rounded-md border border-[var(--line)] px-2 py-1 text-left text-base font-semibold tracking-tight ${
+            card.isCompleted ? "text-[var(--muted)] line-through" : "text-[var(--ink)]"
+          }`}
           {...attributes}
           {...listeners}
         >
           {card.title}
         </button>
+        <button
+          type="button"
+          aria-label={card.isCompleted ? "Marcar como pendiente" : "Marcar como completada"}
+          onClick={() => {
+            if (card.type === "simple") {
+              onToggleCardComplete(!card.isCompleted);
+            }
+          }}
+          className={`h-9 w-9 rounded-md border text-lg font-bold transition ${
+            card.isCompleted
+              ? "border-[var(--brand)] bg-[color:rgba(19,212,197,0.2)] text-[var(--brand)]"
+              : "border-[var(--line)] bg-[var(--soft)] text-[var(--muted)]"
+          } ${card.type === "checklist" ? "cursor-default opacity-90" : "hover:border-[var(--brand)] hover:text-[var(--brand)]"}`}
+        >
+          ✓
+        </button>
       </div>
 
-      {card.description ? <p className="text-sm leading-relaxed text-[var(--muted)]">{card.description}</p> : null}
+      {card.description ? (
+        <p className={`text-sm leading-relaxed ${card.isCompleted ? "text-[var(--muted)] line-through opacity-80" : "text-[var(--muted)]"}`}>
+          {card.description}
+        </p>
+      ) : null}
 
       {card.type === "checklist" ? (
         <div className="mt-3 rounded-md border border-[var(--line)] bg-[var(--soft)] p-2">
           <p className="mb-2 text-xs font-semibold text-[var(--muted)]">
-            Checklist {completed}/{card.checklist.length}
+            Checklist {completed}/{card.checklist.length} ({checklistProgress}%)
           </p>
+          <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+            <div className="h-full bg-[var(--brand)] transition-all" style={{ width: `${checklistProgress}%` }} />
+          </div>
           <div className="space-y-1">
             {card.checklist.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
@@ -622,7 +689,9 @@ function SortableCard({ card, onDelete, onToggleChecklist, onAddChecklist, onDel
       ) : null}
 
       <div className="mt-3 flex items-center justify-between border-t border-[var(--line)] pt-2">
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">Arrastra para mover</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          {card.isCompleted ? "Completada" : "Arrastra para mover"}
+        </span>
         <button
           onClick={(event) => onDelete(event.currentTarget)}
           type="button"

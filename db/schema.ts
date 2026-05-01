@@ -51,6 +51,7 @@ export const cards = pgTable("cards", {
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   columnName: cardColumnEnum("column_name").notNull().default("todo"),
   type: cardTypeEnum("type").notNull().default("simple"),
+  isCompleted: boolean("is_completed").notNull().default(false),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
   position: integer("position").notNull().default(0),

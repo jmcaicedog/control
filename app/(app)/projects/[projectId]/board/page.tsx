@@ -47,6 +47,7 @@ export default async function ProjectBoardPage({ params }: { params: Params }) {
     columnName: card.columnName,
     position: card.position,
     type: card.type,
+    isCompleted: card.isCompleted,
     checklist: items
       .filter((item) => item.cardId === card.id)
       .map((item) => ({
