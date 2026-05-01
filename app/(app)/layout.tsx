@@ -21,6 +21,12 @@ export default async function AppLayout({
           </Link>
           <div className="flex items-center gap-3">
             <p className="text-sm text-[var(--muted)]">{user.email}</p>
+            <Link
+              href="/account/security"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
+            >
+              Seguridad
+            </Link>
             <LogoutButton />
           </div>
         </div>

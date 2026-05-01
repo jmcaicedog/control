@@ -40,3 +40,31 @@ export const cardSchema = z.object({
   columnName: z.enum(["todo", "doing", "in_review", "done"]),
   checklistItems: z.array(z.string().trim().min(1)).optional(),
 });
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8, "La contraseña actual es obligatoria"),
+  newPassword: z
+    .string()
+    .min(12, "La nueva contraseña debe tener al menos 12 caracteres")
+    .regex(/[A-Z]/, "Debe incluir al menos una letra mayúscula")
+    .regex(/[a-z]/, "Debe incluir al menos una letra minúscula")
+    .regex(/[0-9]/, "Debe incluir al menos un número")
+    .regex(/[^A-Za-z0-9]/, "Debe incluir al menos un carácter especial"),
+  confirmPassword: z.string().min(1, "Debes confirmar la nueva contraseña"),
+}).superRefine((value, ctx) => {
+  if (value.newPassword !== value.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "La confirmación no coincide con la nueva contraseña",
+      path: ["confirmPassword"],
+    });
+  }
+
+  if (value.currentPassword === value.newPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "La nueva contraseña debe ser diferente a la actual",
+      path: ["newPassword"],
+    });
+  }
+});

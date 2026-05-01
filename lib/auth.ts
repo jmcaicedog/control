@@ -119,6 +119,75 @@ export async function authenticate(email: string, password: string): Promise<Aut
   };
 }
 
+type ChangePasswordResult =
+  | { ok: true }
+  | { ok: false; reason: "credential_not_found" | "invalid_current_password" };
+
+export async function changePasswordForUser(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  keepSessionToken?: string
+): Promise<ChangePasswordResult> {
+  const sql = getSqlClient();
+
+  const rows = await sql.query(
+    `
+      select id::text as id, password
+      from neon_auth.account
+      where "userId" = $1::uuid
+        and "providerId" = 'credential'
+        and password is not null
+      order by "updatedAt" desc
+      limit 1
+    `,
+    [userId]
+  );
+
+  const account = rows[0] as { id: string; password: string | null } | undefined;
+  if (!account?.password) {
+    return { ok: false, reason: "credential_not_found" };
+  }
+
+  const valid = await verifyPassword(currentPassword, account.password);
+  if (!valid) {
+    return { ok: false, reason: "invalid_current_password" };
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await sql.query(
+    `
+      update neon_auth.account
+      set password = $2,
+          "updatedAt" = now()
+      where id = $1::uuid
+    `,
+    [account.id, passwordHash]
+  );
+
+  if (keepSessionToken) {
+    await sql.query(
+      `
+        delete from neon_auth.session
+        where "userId" = $1::uuid
+          and token <> $2
+      `,
+      [userId, keepSessionToken]
+    );
+  } else {
+    await sql.query(
+      `
+        delete from neon_auth.session
+        where "userId" = $1::uuid
+      `,
+      [userId]
+    );
+  }
+
+  return { ok: true };
+}
+
 export async function createSession(userId: string, ipAddress?: string, userAgent?: string) {
   const sql = getSqlClient();
   const token = randomBytes(32).toString("hex");
