@@ -1,13 +1,15 @@
 import {
   boolean,
   date,
+  index,
   integer,
   numeric,
   pgEnum,
+  pgSchema,
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 export const cardColumnEnum = pgEnum("card_column", [
@@ -19,20 +21,15 @@ export const cardColumnEnum = pgEnum("card_column", [
 
 export const cardTypeEnum = pgEnum("card_type", ["simple", "checklist"]);
 
-export const appUsers = pgTable("app_users", {
-  id: text("id").primaryKey(),
-  email: text("email").notNull(),
-  name: text("name").notNull(),
-  passwordHash: text("password_hash").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => ({
-  emailUnique: uniqueIndex("app_users_email_idx").on(table.email),
-}));
+const neonAuth = pgSchema("neon_auth");
+
+export const neonAuthUsers = neonAuth.table("user", {
+  id: uuid("id").primaryKey(),
+});
 
 export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => appUsers.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => neonAuthUsers.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email"),
@@ -44,7 +41,10 @@ export const projects = pgTable("projects", {
   endDate: date("end_date").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  userIdx: index("projects_user_idx").on(table.userId),
+  userCreatedIdx: index("projects_user_created_idx").on(table.userId, table.createdAt),
+}));
 
 export const cards = pgTable("cards", {
   id: text("id").primaryKey(),
@@ -56,7 +56,14 @@ export const cards = pgTable("cards", {
   position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  projectIdx: index("cards_project_idx").on(table.projectId),
+  projectColumnPositionIdx: index("cards_project_column_position_idx").on(
+    table.projectId,
+    table.columnName,
+    table.position
+  ),
+}));
 
 export const checklistItems = pgTable("checklist_items", {
   id: text("id").primaryKey(),
@@ -65,4 +72,7 @@ export const checklistItems = pgTable("checklist_items", {
   isCompleted: boolean("is_completed").notNull().default(false),
   position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  cardIdx: index("checklist_items_card_idx").on(table.cardId),
+  cardPositionIdx: index("checklist_items_card_position_idx").on(table.cardId, table.position),
+}));

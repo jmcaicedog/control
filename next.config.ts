@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  poweredByHeader: false,
+  compress: true,
+  experimental: {
+    optimizePackageImports: ["@dnd-kit/core", "@dnd-kit/sortable", "date-fns"],
+  },
 };
 
 export default nextConfig;

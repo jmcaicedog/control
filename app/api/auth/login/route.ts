@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authenticate, createSessionToken, setSessionCookie } from "@/lib/auth";
+import { authenticate, createSession, setSessionCookie } from "@/lib/auth";
 import { loginSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
@@ -15,11 +15,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Credenciales incorrectas" }, { status: 401 });
   }
 
-  const token = await createSessionToken({
-    sub: user.id,
-    email: user.email,
-    name: user.name,
-  });
+  const token = await createSession(
+    user.id,
+    request.headers.get("x-forwarded-for") ?? undefined,
+    request.headers.get("user-agent") ?? undefined
+  );
 
   await setSessionCookie(token);
 

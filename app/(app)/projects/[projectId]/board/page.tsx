@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { BoardClient } from "@/components/board/board-client";
 import { db } from "@/db";
@@ -32,9 +32,12 @@ export default async function ProjectBoardPage({ params }: { params: Params }) {
     .where(eq(cards.projectId, project.id))
     .orderBy(asc(cards.position), asc(cards.createdAt));
 
+  const projectCardIds = projectCards.map((card) => card.id);
+
   const items = await db
     .select()
     .from(checklistItems)
+    .where(projectCardIds.length ? inArray(checklistItems.cardId, projectCardIds) : undefined)
     .orderBy(asc(checklistItems.position));
 
   const boardCards = projectCards.map((card) => ({
