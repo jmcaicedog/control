@@ -49,10 +49,6 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-[var(--muted)]">Accede para gestionar proyectos, tarjetas y finanzas.</p>
         </div>
 
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
-          Usuario inicial: <span className="text-[var(--ink)]">jcaicedev@gmail.com</span>
-        </p>
-
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <div>
             <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="email">
