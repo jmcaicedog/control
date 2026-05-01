@@ -58,13 +58,16 @@ export default async function ProjectBoardPage({ params }: { params: Params }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_12px_30px_rgba(1,8,22,0.3)]">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Kanban</p>
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">Kanban</p>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">{project.name}</h1>
           <p className="text-sm text-[var(--muted)]">Cliente: {project.clientName}</p>
         </div>
-        <Link href="/dashboard" className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-semibold">
+        <Link
+          href="/dashboard"
+          className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
+        >
           Volver
         </Link>
       </div>

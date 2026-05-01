@@ -42,16 +42,20 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-white p-7 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">Control</p>
-        <h1 className="mt-2 text-2xl font-bold text-[var(--ink)]">Iniciar sesión</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Usuario inicial configurado: <strong>jcaicedev@gmail.com</strong>
+      <div className="w-full max-w-md rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-7 shadow-[0_26px_85px_rgba(1,8,22,0.58)]">
+        <div className="mb-5 rounded-2xl border border-[var(--line)] bg-[var(--soft)]/70 p-4">
+          <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">Control</p>
+          <h1 className="mt-2 text-[30px] font-bold leading-none text-[var(--ink)]">Iniciar sesión</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">Accede para gestionar proyectos, tarjetas y finanzas.</p>
+        </div>
+
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+          Usuario inicial: <span className="text-[var(--ink)]">jcaicedev@gmail.com</span>
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--ink)]" htmlFor="email">
+            <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="email">
               Correo
             </label>
             <input
@@ -60,12 +64,12 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-lg border border-[var(--line)] px-3 py-2 outline-none focus:border-[var(--brand)]"
+              className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--brand)]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--ink)]" htmlFor="password">
+            <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="password">
               Contraseña
             </label>
             <input
@@ -75,14 +79,14 @@ export default function LoginPage() {
               minLength={8}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-lg border border-[var(--line)] px-3 py-2 outline-none focus:border-[var(--brand)]"
+              className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--brand)]"
             />
           </div>
 
           <button
             disabled={loading}
             type="submit"
-            className="w-full rounded-lg bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-lg bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-[#061425] transition hover:-translate-y-0.5 hover:bg-[var(--brand-strong)] disabled:opacity-50"
           >
             {loading ? "Ingresando..." : "Entrar"}
           </button>

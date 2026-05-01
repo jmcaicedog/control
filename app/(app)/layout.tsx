@@ -14,9 +14,9 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-[var(--line)] bg-white/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[color:rgba(7,16,38,0.82)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <Link href="/dashboard" className="font-semibold tracking-tight text-[var(--ink)]">
+          <Link href="/dashboard" className="font-semibold tracking-tight text-[var(--ink)] transition hover:text-[var(--brand)]">
             Control de Proyectos
           </Link>
           <div className="flex items-center gap-3">

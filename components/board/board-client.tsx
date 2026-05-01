@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
   closestCorners,
   DndContext,
@@ -56,6 +56,11 @@ const columns: Array<{ id: BoardColumn; label: string }> = [
 
 export function BoardClient({ projectId, initialCards }: BoardClientProps) {
   const [cards, setCards] = useState<BoardCard[]>(initialCards);
+  const [cardToDelete, setCardToDelete] = useState<{ id: string; title: string } | null>(null);
+  const lastDeleteTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const deleteModalRef = useRef<HTMLDivElement | null>(null);
+  const cancelDeleteButtonRef = useRef<HTMLButtonElement | null>(null);
+  const confirmDeleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [targetColumn, setTargetColumn] = useState<BoardColumn>("todo");
@@ -64,6 +69,11 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
   const [type, setType] = useState<CardType>("simple");
   const [checklistText, setChecklistText] = useState("");
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
+  const hasMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const byColumn = useMemo(() => {
     return columns.reduce<Record<BoardColumn, BoardCard[]>>((acc, col) => {
@@ -225,18 +235,117 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
     });
   };
 
+  const closeDeleteModal = useCallback(() => {
+    setCardToDelete(null);
+    requestAnimationFrame(() => {
+      lastDeleteTriggerRef.current?.focus();
+    });
+  }, []);
+
+  const confirmDeleteCard = useCallback(() => {
+    const target = cardToDelete;
+    if (!target || isPending) {
+      return;
+    }
+
+    lastDeleteTriggerRef.current = null;
+    setCards((prev) => prev.filter((item) => item.id !== target.id));
+    setCardToDelete(null);
+
+    startTransition(async () => {
+      await deleteCardAction({ projectId, cardId: target.id });
+    });
+  }, [cardToDelete, isPending, projectId, startTransition]);
+
+  useEffect(() => {
+    if (!cardToDelete) {
+      return;
+    }
+
+    cancelDeleteButtonRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!cardToDelete) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeDeleteModal();
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        confirmDeleteCard();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const modal = deleteModalRef.current;
+      if (!modal) {
+        return;
+      }
+
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+        )
+      );
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+
+      if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [cardToDelete, isPending, closeDeleteModal, confirmDeleteCard]);
+
+  if (!hasMounted) {
+    return (
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+        Cargando tablero...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
         <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible xl:grid-cols-4">
           {columns.map((column) => (
-            <section key={column.id} className="min-w-[82vw] snap-start rounded-xl border border-[var(--line)] bg-white p-3 md:min-w-0">
+            <section
+              key={column.id}
+              className="min-w-[82vw] snap-start rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[0_10px_26px_rgba(1,8,22,0.35)] md:min-w-0"
+            >
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--muted)]">{column.label}</h2>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--brand)]">{column.label}</h2>
                 <button
                   type="button"
                   onClick={() => openCreate(column.id)}
-                  className="rounded-md border border-[var(--line)] px-2 py-1 text-xs font-semibold hover:bg-[var(--soft)]"
+                  className="rounded-md border border-[var(--line)] px-2 py-1 text-xs font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
                 >
                   + Card
                 </button>
@@ -248,15 +357,9 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
                     <SortableCard
                       key={card.id}
                       card={card}
-                      onDelete={() => {
-                        const ok = window.confirm("¿Eliminar esta tarea?");
-                        if (!ok) {
-                          return;
-                        }
-                        setCards((prev) => prev.filter((item) => item.id !== card.id));
-                        startTransition(async () => {
-                          await deleteCardAction({ projectId, cardId: card.id });
-                        });
+                      onDelete={(trigger) => {
+                        lastDeleteTriggerRef.current = trigger;
+                        setCardToDelete({ id: card.id, title: card.title });
                       }}
                       onToggleChecklist={(itemId, value) => {
                         setCards((prev) =>
@@ -302,27 +405,27 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
       </DndContext>
 
       {isCreateOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-5">
-            <h3 className="text-lg font-bold">Nueva tarea en {columns.find((c) => c.id === targetColumn)?.label}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+            <h3 className="text-lg font-bold text-[var(--ink)]">Nueva tarea en {columns.find((c) => c.id === targetColumn)?.label}</h3>
             <div className="mt-4 space-y-3">
               <input
                 placeholder="Título"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="w-full rounded-lg border border-[var(--line)] px-3 py-2"
+                className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] placeholder:text-[var(--muted)]"
               />
               <textarea
                 placeholder="Descripción"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-[var(--line)] px-3 py-2"
+                className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] placeholder:text-[var(--muted)]"
               />
               <select
                 value={type}
                 onChange={(event) => setType(event.target.value as CardType)}
-                className="w-full rounded-lg border border-[var(--line)] px-3 py-2"
+                className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)]"
               >
                 <option value="simple">Simple</option>
                 <option value="checklist">Checklist</option>
@@ -333,7 +436,7 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
                   value={checklistText}
                   onChange={(event) => setChecklistText(event.target.value)}
                   placeholder="Un item por línea"
-                  className="w-full rounded-lg border border-[var(--line)] px-3 py-2"
+                  className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] placeholder:text-[var(--muted)]"
                 />
               ) : null}
             </div>
@@ -341,7 +444,7 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(false)}
-                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm"
+                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--ink)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
               >
                 Cancelar
               </button>
@@ -349,9 +452,54 @@ export function BoardClient({ projectId, initialCards }: BoardClientProps) {
                 type="button"
                 disabled={isPending}
                 onClick={createCard}
-                className="rounded-lg bg-[var(--ink)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="rounded-lg bg-[var(--brand)] px-3 py-2 text-sm font-semibold text-[#061425] transition hover:-translate-y-0.5 hover:bg-[var(--brand-strong)] disabled:opacity-60"
               >
                 Crear
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {cardToDelete ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeDeleteModal();
+            }
+          }}
+        >
+          <div
+            ref={deleteModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-card-modal-title"
+            aria-describedby="delete-card-modal-description"
+            className="w-full max-w-md rounded-xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+          >
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--brand)]">Confirmar acción</p>
+            <h3 id="delete-card-modal-title" className="mt-2 text-lg font-bold text-[var(--ink)]">Eliminar tarea</h3>
+            <p id="delete-card-modal-description" className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+              Esta acción no se puede deshacer. Se eliminará <strong className="text-[var(--ink)]">{cardToDelete.title}</strong>.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                ref={cancelDeleteButtonRef}
+                type="button"
+                onClick={closeDeleteModal}
+                className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--ink)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+              >
+                Cancelar
+              </button>
+              <button
+                ref={confirmDeleteButtonRef}
+                type="button"
+                disabled={isPending}
+                onClick={confirmDeleteCard}
+                className="rounded-lg border border-red-400/50 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200 transition hover:-translate-y-0.5 hover:bg-red-500/20 disabled:opacity-60"
+              >
+                {isPending ? "Eliminando..." : "Sí, eliminar"}
               </button>
             </div>
           </div>
@@ -375,7 +523,7 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[140px] space-y-2 rounded-lg bg-[var(--soft)]/70 p-2 transition ${
+      className={`min-h-[140px] space-y-2 rounded-lg border border-[var(--line)] bg-[var(--soft)] p-2 transition ${
         isOver ? "ring-2 ring-[var(--brand)]" : ""
       }`}
     >
@@ -386,7 +534,7 @@ function DroppableColumn({
 
 type SortableCardProps = {
   card: BoardCard;
-  onDelete: () => void;
+  onDelete: (trigger: HTMLButtonElement) => void;
   onToggleChecklist: (itemId: string, value: boolean) => void;
   onAddChecklist: (title: string) => Promise<void>;
   onDeleteChecklist: (itemId: string) => Promise<void>;
@@ -407,27 +555,24 @@ function SortableCard({ card, onDelete, onToggleChecklist, onAddChecklist, onDel
     <article
       ref={setNodeRef}
       style={style}
-      className="rounded-lg border border-[var(--line)] bg-white p-3 shadow-sm"
+      className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-3 shadow-[0_6px_16px_rgba(1,8,22,0.28)]"
       data-dragging={isDragging}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
         <button
           type="button"
-          className="cursor-grab rounded-md border border-[var(--line)] px-2 py-1 text-left text-sm font-semibold"
+          className="cursor-grab rounded-md border border-[var(--line)] px-2 py-1 text-left text-base font-semibold tracking-tight text-[var(--ink)]"
           {...attributes}
           {...listeners}
         >
           {card.title}
         </button>
-        <button onClick={onDelete} type="button" className="text-xs text-red-600">
-          Eliminar
-        </button>
       </div>
 
-      {card.description ? <p className="text-sm text-[var(--muted)]">{card.description}</p> : null}
+      {card.description ? <p className="text-sm leading-relaxed text-[var(--muted)]">{card.description}</p> : null}
 
       {card.type === "checklist" ? (
-        <div className="mt-3 rounded-md bg-[var(--soft)] p-2">
+        <div className="mt-3 rounded-md border border-[var(--line)] bg-[var(--soft)] p-2">
           <p className="mb-2 text-xs font-semibold text-[var(--muted)]">
             Checklist {completed}/{card.checklist.length}
           </p>
@@ -444,7 +589,7 @@ function SortableCard({ card, onDelete, onToggleChecklist, onAddChecklist, onDel
                 </label>
                 <button
                   type="button"
-                  className="text-red-600"
+                  className="text-red-300 hover:text-red-200"
                   onClick={() => onDeleteChecklist(item.id)}
                 >
                   x
@@ -457,11 +602,11 @@ function SortableCard({ card, onDelete, onToggleChecklist, onAddChecklist, onDel
               value={newItem}
               onChange={(event) => setNewItem(event.target.value)}
               placeholder="Nuevo item"
-              className="w-full rounded border border-[var(--line)] px-2 py-1 text-xs"
+              className="w-full rounded border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1 text-xs text-[var(--ink)] placeholder:text-[var(--muted)]"
             />
             <button
               type="button"
-              className="rounded border border-[var(--line)] px-2 py-1 text-xs"
+              className="rounded border border-[var(--line)] px-2 py-1 text-xs text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
               onClick={async () => {
                 if (!newItem.trim()) {
                   return;
@@ -475,6 +620,17 @@ function SortableCard({ card, onDelete, onToggleChecklist, onAddChecklist, onDel
           </div>
         </div>
       ) : null}
+
+      <div className="mt-3 flex items-center justify-between border-t border-[var(--line)] pt-2">
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">Arrastra para mover</span>
+        <button
+          onClick={(event) => onDelete(event.currentTarget)}
+          type="button"
+          className="text-xs font-medium text-red-300 transition hover:text-red-200"
+        >
+          Eliminar
+        </button>
+      </div>
     </article>
   );
 }

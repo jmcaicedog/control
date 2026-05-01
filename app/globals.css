@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f4f6f5;
-  --ink: #10221a;
-  --muted: #557365;
-  --brand: #0a8f5a;
-  --line: #d3dfd9;
-  --soft: #ecf5f1;
+  --bg: #060f25;
+  --ink: #e8f1ff;
+  --muted: #8ea4c8;
+  --brand: #13d4c5;
+  --brand-strong: #25efe0;
+  --line: #243a62;
+  --soft: #0f1d3d;
+  --surface: #101d38;
+  --surface-2: #152447;
 }
 
 @theme inline {
@@ -18,14 +21,45 @@
 
 body {
   background:
-    radial-gradient(circle at 5% 0%, #daf0e4 0, transparent 40%),
-    radial-gradient(circle at 100% 100%, #ffefd2 0, transparent 30%),
+    radial-gradient(circle at 18% -10%, rgba(68, 130, 215, 0.35) 0, transparent 48%),
+    radial-gradient(circle at 90% 0%, rgba(19, 212, 197, 0.2) 0, transparent 32%),
+    radial-gradient(circle, rgba(118, 149, 202, 0.18) 1px, transparent 1px),
     var(--bg);
+  background-size: auto, auto, 24px 24px, auto;
   color: var(--ink);
   font-family: var(--font-space-grotesk), sans-serif;
+  line-height: 1.45;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
+input,
+textarea,
+select {
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 72%, transparent);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--brand), 0 0 0 4px color-mix(in srgb, var(--brand) 20%, transparent);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #b6cbc1 transparent;
+  scrollbar-color: #2e4e84 transparent;
 }

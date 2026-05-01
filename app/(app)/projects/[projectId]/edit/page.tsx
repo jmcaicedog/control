@@ -28,7 +28,10 @@ export default async function EditProjectPage({ params }: { params: Params }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Editar proyecto</h1>
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_12px_30px_rgba(1,8,22,0.3)]">
+        <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">Proyecto</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-[var(--ink)]">Editar proyecto</h1>
+      </div>
       <ProjectForm
         action={updateProjectAction.bind(null, projectId)}
         submitLabel="Guardar cambios"
