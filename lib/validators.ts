@@ -33,6 +33,26 @@ export const projectSchema = z.object({
   }
 });
 
+export const quoteSchema = z.object({
+  name: z.string().trim().min(1, "El nombre de la cotización es obligatorio"),
+  clientName: z.string().trim().min(1, "El nombre del cliente es obligatorio"),
+  clientEmail: z.union([z.literal(""), z.string().email("Correo del cliente inválido")]),
+  clientPhone: z.string().trim().optional(),
+  description: z.string().trim().optional(),
+  totalValue: z.coerce.number().nonnegative("El valor total debe ser mayor o igual a 0"),
+  advanceValue: z.coerce.number().nonnegative("El anticipo debe ser mayor o igual a 0"),
+}).superRefine((value, ctx) => {
+  if (value.advanceValue > value.totalValue) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "El anticipo no puede ser mayor al valor total",
+      path: ["advanceValue"],
+    });
+  }
+});
+
+export const convertQuoteSchema = projectSchema;
+
 export const cardSchema = z.object({
   title: z.string().trim().min(1, "Título obligatorio"),
   description: z.string().trim().optional(),

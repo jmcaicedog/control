@@ -20,6 +20,7 @@ export const cardColumnEnum = pgEnum("card_column", [
 ]);
 
 export const cardTypeEnum = pgEnum("card_type", ["simple", "checklist"]);
+export const projectTypeEnum = pgEnum("project_type", ["project", "quote"]);
 
 const neonAuth = pgSchema("neon_auth");
 
@@ -30,6 +31,8 @@ export const neonAuthUsers = neonAuth.table("user", {
 export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
   userId: uuid("user_id").notNull().references(() => neonAuthUsers.id, { onDelete: "cascade" }),
+  type: projectTypeEnum("type").notNull().default("project"),
+  isArchived: boolean("is_archived").notNull().default(false),
   name: text("name").notNull(),
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email"),
@@ -37,12 +40,13 @@ export const projects = pgTable("projects", {
   description: text("description").notNull().default(""),
   totalValue: numeric("total_value", { precision: 12, scale: 2 }).notNull().default("0"),
   advanceValue: numeric("advance_value", { precision: 12, scale: 2 }).notNull().default("0"),
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date").notNull(),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   userIdx: index("projects_user_idx").on(table.userId),
+  userArchivedIdx: index("projects_user_archived_idx").on(table.userId, table.isArchived),
   userCreatedIdx: index("projects_user_created_idx").on(table.userId, table.createdAt),
 }));
 

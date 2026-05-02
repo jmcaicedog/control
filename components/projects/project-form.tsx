@@ -2,6 +2,8 @@ import Link from "next/link";
 
 type ProjectFormProps = {
   action: (formData: FormData) => void | Promise<void>;
+  entityLabel?: "proyecto" | "cotizacion";
+  showDates?: boolean;
   initialData?: {
     name?: string;
     clientName?: string;
@@ -17,7 +19,16 @@ type ProjectFormProps = {
   cancelHref?: string;
 };
 
-export function ProjectForm({ action, initialData, submitLabel, cancelHref = "/dashboard" }: ProjectFormProps) {
+export function ProjectForm({
+  action,
+  entityLabel = "proyecto",
+  showDates = true,
+  initialData,
+  submitLabel,
+  cancelHref = "/dashboard",
+}: ProjectFormProps) {
+  const mainLabel = entityLabel === "cotizacion" ? "cotización" : "proyecto";
+
   return (
     <form
       action={action}
@@ -26,7 +37,7 @@ export function ProjectForm({ action, initialData, submitLabel, cancelHref = "/d
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="name">
-            Nombre del proyecto *
+            Nombre del {mainLabel} *
           </label>
           <input
             id="name"
@@ -125,35 +136,37 @@ export function ProjectForm({ action, initialData, submitLabel, cancelHref = "/d
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="startDate">
-            Fecha de inicio
-          </label>
-          <input
-            id="startDate"
-            name="startDate"
-            type="date"
-            required
-            defaultValue={initialData?.startDate ?? ""}
-            className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--brand)]"
-          />
-        </div>
+      {showDates ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="startDate">
+              Fecha de inicio
+            </label>
+            <input
+              id="startDate"
+              name="startDate"
+              type="date"
+              required
+              defaultValue={initialData?.startDate ?? ""}
+              className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--brand)]"
+            />
+          </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="endDate">
-            Fecha de finalización
-          </label>
-          <input
-            id="endDate"
-            name="endDate"
-            type="date"
-            required
-            defaultValue={initialData?.endDate ?? ""}
-            className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--brand)]"
-          />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--muted)]" htmlFor="endDate">
+              Fecha de finalización
+            </label>
+            <input
+              id="endDate"
+              name="endDate"
+              type="date"
+              required
+              defaultValue={initialData?.endDate ?? ""}
+              className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--brand)]"
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <button
