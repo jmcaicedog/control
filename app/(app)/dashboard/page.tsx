@@ -60,6 +60,59 @@ function ContactInfo({ email, phone }: { email?: string | null; phone?: string |
   );
 }
 
+const cardIconButtonClass =
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--soft)] text-[var(--ink)] transition duration-200 hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]";
+
+function IconBoard() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h7v6H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 13h7v6H4z" />
+    </svg>
+  );
+}
+
+function IconAccess() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14 8a4 4 0 1 1 7.5 2H23v2h-2v2h-2v2h-2.5l-1.1-1.1a4 4 0 0 1-1.4.1A4 4 0 0 1 14 8Z" />
+      <circle cx="17" cy="8" r="1" fill="currentColor" stroke="none" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 20h8" />
+    </svg>
+  );
+}
+
+function IconEdit() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m14 5 5 5M4 20l3.5-.5L18 9a1.4 1.4 0 0 0 0-2l-1-1a1.4 1.4 0 0 0-2 0L4.5 16.5 4 20z" />
+    </svg>
+  );
+}
+
+function IconArchive() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16v4H4zM6 10h12v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8zM10 14h4" />
+    </svg>
+  );
+}
+
+function IconRestore() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 11a8 8 0 1 0 2.3-5.6M4 5v6h6" />
+    </svg>
+  );
+}
+
+function IconConvert() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h10m0 0-3.5-3.5M14 12l-3.5 3.5M17 5h3v3M20 8l-5 5" />
+    </svg>
+  );
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -201,26 +254,24 @@ export default async function DashboardPage({
 
                         <ContactInfo email={project.clientEmail} phone={project.clientPhone} />
 
-                        <div className="mt-4 flex flex-wrap items-center gap-2">
-                          <Link
-                            href={`/projects/${project.id}/board`}
-                            className="rounded-lg border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                          >
-                            Abrir board
+                        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1">
+                          <Link href={`/projects/${project.id}/board`} className={cardIconButtonClass} aria-label="Abrir board" title="Abrir board">
+                            <IconBoard />
                           </Link>
-                          <Link
-                            href={`/projects/${project.id}/edit`}
-                            className="rounded-lg border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                          >
-                            Editar
+                          <Link href={`/projects/${project.id}/access`} className={cardIconButtonClass} aria-label="Accesos" title="Accesos">
+                            <IconAccess />
+                          </Link>
+                          <Link href={`/projects/${project.id}/edit`} className={cardIconButtonClass} aria-label="Editar" title="Editar">
+                            <IconEdit />
                           </Link>
                           <ConfirmProjectActionButton
                             action={archiveProjectAction.bind(null, project.id)}
                             confirmMessage="¿Seguro que deseas archivar este proyecto? Podrás restaurarlo desde la sección Archivados."
-                            label="Archivar"
+                            label={<IconArchive />}
+                            buttonLabel="Archivar"
                             confirmLabel="Sí, archivar"
                             cancelLabel="Mantener"
-                            className="rounded-lg border border-amber-400/50 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-200 transition hover:bg-amber-500/20"
+                            className={cardIconButtonClass}
                           />
                           <DeleteProjectButton action={deleteProjectAction.bind(null, project.id)} />
                         </div>
@@ -273,18 +324,22 @@ export default async function DashboardPage({
 
                         <ContactInfo email={project.clientEmail} phone={project.clientPhone} />
 
-                        <div className="mt-4 flex flex-wrap items-center gap-2">
-                          <Link
-                            href={`/projects/${project.id}/edit`}
-                            className="rounded-lg border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                          >
-                            Editar cotización
-                          </Link>
+                        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1">
                           <Link
                             href={`/projects/${project.id}/edit?mode=convert`}
-                            className="rounded-lg bg-[var(--brand)] px-3 py-2 text-xs font-semibold text-[#061425] transition hover:-translate-y-0.5 hover:bg-[var(--brand-strong)]"
+                            className={cardIconButtonClass}
+                            aria-label="Aprobar y convertir"
+                            title="Aprobar y convertir"
                           >
-                            Aprobar y convertir
+                            <IconConvert />
+                          </Link>
+                          <Link
+                            href={`/projects/${project.id}/edit`}
+                            className={cardIconButtonClass}
+                            aria-label="Editar cotización"
+                            title="Editar cotización"
+                          >
+                            <IconEdit />
                           </Link>
                           <DeleteProjectButton action={deleteProjectAction.bind(null, project.id)} />
                         </div>
@@ -343,21 +398,22 @@ export default async function DashboardPage({
                           </p>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1">
+                          <Link href={`/projects/${project.id}/access`} className={cardIconButtonClass} aria-label="Accesos" title="Accesos">
+                            <IconAccess />
+                          </Link>
+                          <Link href={`/projects/${project.id}/edit`} className={cardIconButtonClass} aria-label="Editar" title="Editar">
+                            <IconEdit />
+                          </Link>
                           <ConfirmProjectActionButton
                             action={restoreProjectAction.bind(null, project.id)}
                             confirmMessage="¿Deseas restaurar este proyecto para que vuelva a Proyectos?"
-                            label="Restaurar"
+                            label={<IconRestore />}
+                            buttonLabel="Restaurar"
                             confirmLabel="Sí, restaurar"
                             cancelLabel="Cancelar"
-                            className="rounded-lg bg-[var(--brand)] px-3 py-2 text-xs font-semibold text-[#061425] transition hover:-translate-y-0.5 hover:bg-[var(--brand-strong)]"
+                            className={cardIconButtonClass}
                           />
-                          <Link
-                            href={`/projects/${project.id}/edit`}
-                            className="rounded-lg border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                          >
-                            Editar
-                          </Link>
                           <DeleteProjectButton action={deleteProjectAction.bind(null, project.id)} />
                         </div>
                       </article>

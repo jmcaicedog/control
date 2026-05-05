@@ -1,15 +1,17 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 type ConfirmProjectActionButtonProps = {
   action: () => Promise<void>;
   confirmMessage: string;
-  label: string;
+  label: ReactNode;
   className: string;
   confirmLabel?: string;
   cancelLabel?: string;
   confirmClassName?: string;
+  buttonLabel?: string;
 };
 
 export function ConfirmProjectActionButton({
@@ -20,6 +22,7 @@ export function ConfirmProjectActionButton({
   confirmLabel = "Confirmar",
   cancelLabel = "Cancelar",
   confirmClassName = "rounded-lg bg-[var(--brand)] px-3 py-2 text-xs font-semibold text-[#061425] transition hover:bg-[var(--brand-strong)] disabled:cursor-not-allowed disabled:opacity-60",
+  buttonLabel,
 }: ConfirmProjectActionButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,6 +63,8 @@ export function ConfirmProjectActionButton({
         type="button"
         onClick={() => setIsOpen(true)}
         className={className}
+        title={buttonLabel}
+        aria-label={buttonLabel}
       >
         {label}
       </button>

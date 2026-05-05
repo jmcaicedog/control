@@ -81,3 +81,18 @@ export const checklistItems = pgTable("checklist_items", {
   cardIdx: index("checklist_items_card_idx").on(table.cardId),
   cardPositionIdx: index("checklist_items_card_position_idx").on(table.cardId, table.position),
 }));
+
+export const projectCredentials = pgTable("project_credentials", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  username: text("username").notNull(),
+  password: text("password").notNull(),
+  comments: text("comments").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  projectIdx: index("project_credentials_project_idx").on(table.projectId),
+  projectCreatedIdx: index("project_credentials_project_created_idx").on(table.projectId, table.createdAt),
+}));

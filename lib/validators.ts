@@ -88,3 +88,15 @@ export const changePasswordSchema = z.object({
     });
   }
 });
+
+export const projectCredentialSchema = z.object({
+  name: z.string().trim().min(1, "El nombre del acceso es obligatorio").max(80, "Máximo 80 caracteres"),
+  url: z.string().trim().url("La URL debe incluir protocolo, por ejemplo https://..."),
+  username: z.string().trim().min(1, "El usuario es obligatorio").max(120, "Máximo 120 caracteres"),
+  password: z.string().trim().min(1, "La contraseña es obligatoria").max(250, "Máximo 250 caracteres"),
+  comments: z.string().trim().max(600, "Máximo 600 caracteres").optional(),
+});
+
+export const updateProjectCredentialSchema = projectCredentialSchema.extend({
+  credentialId: z.string().trim().min(1, "Identificador inválido"),
+});
