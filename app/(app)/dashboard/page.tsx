@@ -11,6 +11,55 @@ import { archiveProjectAction, deleteProjectAction, restoreProjectAction } from 
 type DashboardTab = "projects" | "quotes" | "archived";
 type SearchParams = Promise<{ tab?: string }>;
 
+function getWhatsappUrl(phone: string) {
+  const normalizedPhone = phone.replace(/\D/g, "");
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  return `https://wa.me/${normalizedPhone}`;
+}
+
+function ContactInfo({ email, phone }: { email?: string | null; phone?: string | null }) {
+  const whatsappUrl = phone ? getWhatsappUrl(phone) : null;
+
+  if (!email && !phone) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 space-y-2 text-xs text-[var(--muted)]">
+      {email ? (
+        <p>
+          Correo:{" "}
+          <a href={`mailto:${email}`} className="font-medium text-[var(--brand)] underline-offset-2 hover:underline">
+            {email}
+          </a>
+        </p>
+      ) : null}
+
+      {phone ? (
+        <div>
+          <span className="mr-2">Tel:</span>
+          {whatsappUrl ? (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-lg border border-[var(--line)] px-2.5 py-1 font-semibold text-[var(--ink)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+            >
+              WhatsApp: {phone}
+            </a>
+          ) : (
+            <span>{phone}</span>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -150,12 +199,7 @@ export default async function DashboardPage({
                           </p>
                         </div>
 
-                        {project.clientEmail || project.clientPhone ? (
-                          <div className="mt-3 space-y-1 text-xs text-[var(--muted)]">
-                            {project.clientEmail ? <p>Correo: {project.clientEmail}</p> : null}
-                            {project.clientPhone ? <p>Tel: {project.clientPhone}</p> : null}
-                          </div>
-                        ) : null}
+                        <ContactInfo email={project.clientEmail} phone={project.clientPhone} />
 
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           <Link
@@ -227,12 +271,7 @@ export default async function DashboardPage({
                           <p className="flex justify-between"><span className="text-[var(--muted)]">Saldo estimado</span><strong className="font-semibold text-[var(--brand)]">{formatCOP(balance)}</strong></p>
                         </div>
 
-                        {project.clientEmail || project.clientPhone ? (
-                          <div className="mt-3 space-y-1 text-xs text-[var(--muted)]">
-                            {project.clientEmail ? <p>Correo: {project.clientEmail}</p> : null}
-                            {project.clientPhone ? <p>Tel: {project.clientPhone}</p> : null}
-                          </div>
-                        ) : null}
+                        <ContactInfo email={project.clientEmail} phone={project.clientPhone} />
 
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           <Link
