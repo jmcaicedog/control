@@ -1,14 +1,12 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { and, asc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { projectCredentials, projects } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { projectCredentialSchema, updateProjectCredentialSchema } from "@/lib/validators";
-
-const MAX_CREDENTIALS_PER_PROJECT = 5;
 
 async function assertProjectOwnership(projectId: string) {
   const user = await getCurrentUser();
@@ -39,16 +37,6 @@ export async function createProjectCredentialAction(input: {
   await assertProjectOwnership(input.projectId);
 
   const parsed = projectCredentialSchema.parse(input);
-
-  const existing = await db
-    .select({ id: projectCredentials.id })
-    .from(projectCredentials)
-    .where(eq(projectCredentials.projectId, input.projectId))
-    .orderBy(asc(projectCredentials.createdAt));
-
-  if (existing.length >= MAX_CREDENTIALS_PER_PROJECT) {
-    throw new Error("Cada proyecto permite máximo 5 credenciales");
-  }
 
   const credentialId = randomUUID();
 
@@ -129,4 +117,37 @@ export async function updateProjectCredentialAction(input: {
     password: parsed.password,
     comments: parsed.comments || "",
   };
+}
+
+export async function deleteProjectCredentialAction(input: {
+  projectId: string;
+  credentialId: string;
+}) {
+  await assertProjectOwnership(input.projectId);
+
+  const [credential] = await db
+    .select({ id: projectCredentials.id })
+    .from(projectCredentials)
+    .where(
+      and(
+        eq(projectCredentials.id, input.credentialId),
+        eq(projectCredentials.projectId, input.projectId)
+      )
+    )
+    .limit(1);
+
+  if (!credential) {
+    throw new Error("Credencial no encontrada");
+  }
+
+  await db
+    .delete(projectCredentials)
+    .where(
+      and(
+        eq(projectCredentials.id, input.credentialId),
+        eq(projectCredentials.projectId, input.projectId)
+      )
+    );
+
+  revalidatePath(`/projects/${input.projectId}/access`);
 }
