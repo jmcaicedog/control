@@ -61,7 +61,7 @@ function ContactInfo({ email, phone }: { email?: string | null; phone?: string |
 }
 
 const cardIconButtonClass =
-  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--soft)] text-[var(--ink)] transition duration-200 hover:-translate-y-0.5 hover:border-[var(--brand)] hover:text-[var(--brand)]";
+  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--soft)] text-[var(--ink)] transition duration-200 hover:border-[var(--brand)] hover:text-[var(--brand)] hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--brand)_40%,transparent)]";
 
 function IconBoard() {
   return (
