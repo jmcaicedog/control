@@ -85,6 +85,7 @@ export async function createCardAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
 }
 
 export async function toggleCardCompletionAction(input: {
@@ -114,6 +115,7 @@ export async function toggleCardCompletionAction(input: {
     .where(and(eq(cards.id, input.cardId), eq(cards.projectId, input.projectId)));
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
 }
 
 export async function moveCardAction(input: {
@@ -196,6 +198,7 @@ export async function moveCardAction(input: {
   }
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
 }
 
 export async function deleteCardAction(input: { projectId: string; cardId: string }) {
@@ -206,6 +209,7 @@ export async function deleteCardAction(input: { projectId: string; cardId: strin
     .where(and(eq(cards.id, input.cardId), eq(cards.projectId, input.projectId)));
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
 }
 
 export async function toggleChecklistItemAction(input: {
@@ -234,6 +238,7 @@ export async function toggleChecklistItemAction(input: {
   await syncChecklistCardCompletion(item.cardId);
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
 }
 
 export async function addChecklistItemAction(input: {
@@ -261,6 +266,7 @@ export async function addChecklistItemAction(input: {
   await syncChecklistCardCompletion(input.cardId);
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
 
   return {
     id: itemId,
@@ -291,4 +297,5 @@ export async function deleteChecklistItemAction(input: {
   await syncChecklistCardCompletion(item.cardId);
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
 }

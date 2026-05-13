@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { projects } from "@/db/schema";
+import { cards, checklistItems, projects } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { formatCOP, formatDate, getProjectDurationLabel, getProjectStatus } from "@/lib/utils";
 import { DeleteProjectButton } from "@/components/projects/delete-project-button";
 import { ConfirmProjectActionButton } from "@/components/projects/confirm-project-action-button";
 import { archiveProjectAction, deleteProjectAction, restoreProjectAction } from "@/app/(app)/projects/actions";
+import { DashboardTasksClient } from "@/components/tasks/dashboard-tasks-client";
 
-type DashboardTab = "projects" | "quotes" | "archived";
+type DashboardTab = "tasks" | "projects" | "quotes" | "archived";
 type SearchParams = Promise<{ tab?: string }>;
 
 function getWhatsappUrl(phone: string) {
@@ -134,15 +135,74 @@ export default async function DashboardPage({
   const projectItems = data.filter((item) => item.type === "project" && !item.isArchived);
   const archivedItems = data.filter((item) => item.type === "project" && item.isArchived);
   const quoteItems = data.filter((item) => item.type === "quote");
+  const activeProjectIds = projectItems.map((project) => project.id);
+
+  const pendingCards = activeProjectIds.length
+    ? await db
+        .select({
+          id: cards.id,
+          projectId: cards.projectId,
+          title: cards.title,
+          description: cards.description,
+          columnName: cards.columnName,
+          position: cards.position,
+          type: cards.type,
+          isCompleted: cards.isCompleted,
+        })
+        .from(cards)
+        .where(and(inArray(cards.projectId, activeProjectIds), eq(cards.isCompleted, false)))
+        .orderBy(desc(cards.position), desc(cards.createdAt))
+    : [];
+
+  const pendingCardIds = pendingCards.map((card) => card.id);
+
+  const pendingChecklistItems = pendingCardIds.length
+    ? await db
+        .select({
+          id: checklistItems.id,
+          cardId: checklistItems.cardId,
+          title: checklistItems.title,
+          isCompleted: checklistItems.isCompleted,
+          position: checklistItems.position,
+        })
+        .from(checklistItems)
+        .where(inArray(checklistItems.cardId, pendingCardIds))
+    : [];
+
+  const pendingTasks = pendingCards.map((card) => {
+    const project = projectItems.find((item) => item.id === card.projectId);
+
+    return {
+      id: card.id,
+      projectId: card.projectId,
+      projectName: project?.name ?? "Proyecto",
+      title: card.title,
+      description: card.description,
+      columnName: card.columnName,
+      position: card.position,
+      type: card.type,
+      isCompleted: card.isCompleted,
+      checklist: pendingChecklistItems
+        .filter((item) => item.cardId === card.id)
+        .sort((a, b) => a.position - b.position)
+        .map((item) => ({
+          id: item.id,
+          title: item.title,
+          isCompleted: item.isCompleted,
+        })),
+    };
+  });
+
   const hasAnyItems = data.length > 0;
 
   const requestedTab = currentSearchParams.tab;
-  const validTabs: DashboardTab[] = ["projects", "quotes", "archived"];
+  const validTabs: DashboardTab[] = ["tasks", "projects", "quotes", "archived"];
   const activeTab: DashboardTab = validTabs.includes(requestedTab as DashboardTab)
     ? (requestedTab as DashboardTab)
-    : "projects";
+    : "tasks";
 
   const tabs = [
+    { id: "tasks" as const, label: "Tareas", count: pendingTasks.length },
     { id: "projects" as const, label: "Proyectos", count: projectItems.length },
     { id: "quotes" as const, label: "Cotizaciones", count: quoteItems.length },
     { id: "archived" as const, label: "Archivados", count: archivedItems.length },
@@ -153,7 +213,7 @@ export default async function DashboardPage({
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-[0_14px_40px_rgba(3,11,30,0.45)]">
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">Panel financiero</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">Proyectos y cotizaciones</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--ink)]">Proyectos, tareas y cotizaciones</h1>
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/quotes/new"
@@ -201,6 +261,23 @@ export default async function DashboardPage({
         </section>
       ) : (
         <>
+          {activeTab === "tasks" ? (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">Tareas pendientes</h2>
+                <span className="text-xs text-[var(--muted)]">{pendingTasks.length}</span>
+              </div>
+
+              {pendingTasks.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+                  No hay tareas pendientes.
+                </div>
+              ) : (
+                <DashboardTasksClient initialTasks={pendingTasks} />
+              )}
+            </section>
+          ) : null}
+
           {activeTab === "projects" ? (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
