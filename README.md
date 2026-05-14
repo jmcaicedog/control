@@ -1,38 +1,129 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Control App
 
-## Getting Started
+Aplicación web para gestionar proyectos, cotizaciones, tareas tipo Kanban y accesos por proyecto.
 
-First, run the development server:
+## Stack principal
+
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Drizzle ORM + drizzle-kit
+- Neon Postgres (`@neondatabase/serverless`)
+- Tailwind CSS 4
+- dnd-kit (arrastrar y soltar)
+
+## Funcionalidades
+
+- Autenticación por sesión usando tablas en esquema `neon_auth`
+- Panel con pestañas de tareas, proyectos, cotizaciones y archivados
+- Tablero Kanban por proyecto
+- Tareas simples y tareas con checklist
+- Reordenamiento drag-and-drop de tarjetas en tablero
+- Reordenamiento drag-and-drop de tareas en dashboard (la primera posición representa mayor prioridad)
+- Gestión de accesos/credenciales por proyecto
+
+## Requisitos
+
+- Node.js 20+
+- npm 10+
+- Base de datos Postgres (recomendado: Neon)
+- Tablas de Neon Auth disponibles en esquema `neon_auth`
+
+## Variables de entorno
+
+Crea un archivo `.env` en la raíz del proyecto.
+
+Variables usadas por la app:
+
+- `DATABASE_URL` (requerida)
+- `INITIAL_USER_PASSWORD` (opcional, usada por seed)
+- `INITIAL_USER_NAME` (opcional, usada por seed)
+
+## Primer arranque local
+
+1. Instalar dependencias:
+
+```bash
+npm install
+```
+
+2. Sincronizar esquema con la base de datos:
+
+```bash
+npm run db:push
+```
+
+3. Crear/actualizar usuario inicial en `neon_auth`:
+
+```bash
+npm run db:seed
+```
+
+4. Ejecutar en desarrollo:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Abrir:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Acceso inicial
 
-## Learn More
+La pantalla de login precarga el correo:
 
-To learn more about Next.js, take a look at the following resources:
+- `jcaicedev@gmail.com`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+La contraseña será:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `INITIAL_USER_PASSWORD` si está definida
+- En caso contrario, el valor por defecto del seed (`Control2026!`)
 
-## Deploy on Vercel
+## Scripts disponibles
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `npm run dev`: servidor de desarrollo
+- `npm run build`: build de producción
+- `npm run start`: ejecutar build en producción
+- `npm run lint`: lint del proyecto
+- `npm run db:push`: aplicar esquema Drizzle
+- `npm run db:seed`: crear/sincronizar usuario inicial
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# control
-# control
+## Endpoint de salud
+
+Endpoint:
+
+```text
+GET /api/health
+```
+
+Valida:
+
+- Presencia de `DATABASE_URL`
+- Conexión a base de datos
+- Existencia de credencial inicial en `neon_auth`
+
+## Notas de operación
+
+- El orden visual de tareas en dashboard se guarda como prioridad descendente.
+- El proyecto usa `cards.position` para orden y prioridad en tareas.
+- Si modificas el esquema en `db/schema.ts`, vuelve a ejecutar `npm run db:push`.
+
+## Estructura resumida
+
+- `app/`: rutas y páginas (dashboard, auth, API)
+- `components/`: UI y clientes interactivos (board, tasks, forms)
+- `db/`: conexión, esquema y seed
+- `lib/`: utilidades, auth y validadores
+
+## Deploy
+
+Build de producción:
+
+```bash
+npm run build
+```
+
+Este proyecto incluye script `vercel-build` para despliegues en Vercel.

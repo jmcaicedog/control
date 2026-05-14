@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { cards, checklistItems, projects } from "@/db/schema";
@@ -297,5 +297,41 @@ export async function deleteChecklistItemAction(input: {
   await syncChecklistCardCompletion(item.cardId);
 
   revalidatePath(`/projects/${input.projectId}/board`);
+  revalidatePath("/dashboard");
+}
+
+export async function reorderDashboardTasksAction(input: {
+  orderedCardIds: string[];
+}) {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("No autorizado");
+  }
+
+  const uniqueIds = Array.from(new Set(input.orderedCardIds.filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    return;
+  }
+
+  const ownedCards = await db
+    .select({ id: cards.id })
+    .from(cards)
+    .innerJoin(projects, eq(cards.projectId, projects.id))
+    .where(and(inArray(cards.id, uniqueIds), eq(projects.userId, user.id)));
+
+  if (ownedCards.length !== uniqueIds.length) {
+    throw new Error("No autorizado para reordenar estas tareas");
+  }
+
+  for (let index = 0; index < uniqueIds.length; index += 1) {
+    const cardId = uniqueIds[index];
+    const nextPriority = index + 1;
+
+    await db
+      .update(cards)
+      .set({ position: nextPriority, updatedAt: new Date() })
+      .where(eq(cards.id, cardId));
+  }
+
   revalidatePath("/dashboard");
 }
