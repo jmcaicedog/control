@@ -28,7 +28,7 @@ type DashboardTask = {
   title: string;
   description: string;
   columnName: BoardColumn;
-  position: number;
+  priority: number;
   type: CardType;
   isCompleted: boolean;
   checklist: ChecklistItem[];
@@ -53,7 +53,7 @@ export function DashboardTasksClient({ initialTasks }: DashboardTasksClientProps
   const orderedPendingTasks = useMemo(() => {
     return [...tasks]
       .filter((task) => !task.isCompleted)
-      .sort((a, b) => a.position - b.position);
+      .sort((a, b) => a.priority - b.priority);
   }, [tasks]);
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -89,7 +89,7 @@ export function DashboardTasksClient({ initialTasks }: DashboardTasksClientProps
 
         return {
           ...task,
-          position: nextPriority,
+          priority: nextPriority,
         };
       })
     );
@@ -229,7 +229,7 @@ function SortableDashboardTaskRow({
       <div className="grid gap-3 md:grid-cols-[80px_1.6fr_1fr_110px_1fr_230px] md:items-center">
         <div className="text-xs font-semibold text-[var(--muted)]">
           <span className="md:hidden">Prioridad: </span>
-          {task.position}
+          {task.priority}
           <button
             type="button"
             aria-label="Reordenar tarea"

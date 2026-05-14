@@ -58,11 +58,17 @@ export const cards = pgTable("cards", {
   isCompleted: boolean("is_completed").notNull().default(false),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
+  priority: integer("priority").notNull().default(1),
   position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   projectIdx: index("cards_project_idx").on(table.projectId),
+  projectCompletedPriorityIdx: index("cards_project_completed_priority_idx").on(
+    table.projectId,
+    table.isCompleted,
+    table.priority
+  ),
   projectColumnPositionIdx: index("cards_project_column_position_idx").on(
     table.projectId,
     table.columnName,

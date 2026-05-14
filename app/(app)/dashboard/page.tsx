@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { cards, checklistItems, projects } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
@@ -145,13 +145,13 @@ export default async function DashboardPage({
           title: cards.title,
           description: cards.description,
           columnName: cards.columnName,
-          position: cards.position,
+          priority: cards.priority,
           type: cards.type,
           isCompleted: cards.isCompleted,
         })
         .from(cards)
         .where(and(inArray(cards.projectId, activeProjectIds), eq(cards.isCompleted, false)))
-        .orderBy(desc(cards.position), desc(cards.createdAt))
+        .orderBy(asc(cards.priority), desc(cards.createdAt))
     : [];
 
   const pendingCardIds = pendingCards.map((card) => card.id);
@@ -179,7 +179,7 @@ export default async function DashboardPage({
       title: card.title,
       description: card.description,
       columnName: card.columnName,
-      position: card.position,
+      priority: card.priority,
       type: card.type,
       isCompleted: card.isCompleted,
       checklist: pendingChecklistItems

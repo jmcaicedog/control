@@ -107,8 +107,8 @@ Valida:
 
 ## Notas de operación
 
-- El orden visual de tareas en dashboard se guarda como prioridad descendente.
-- El proyecto usa `cards.position` para orden y prioridad en tareas.
+- El orden visual en Kanban usa `cards.position` (solo referencia visual por columna).
+- La priorización de la lista de tareas usa `cards.priority` (independiente del Kanban).
 - Si modificas el esquema en `db/schema.ts`, vuelve a ejecutar `npm run db:push`.
 
 ## Estructura resumida

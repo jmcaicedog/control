@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { cards, checklistItems, projects } from "@/db/schema";
@@ -32,7 +32,7 @@ async function assertProjectOwnership(projectId: string) {
   }
 
   const [project] = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, userId: projects.userId })
     .from(projects)
     .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
     .limit(1);
@@ -40,6 +40,8 @@ async function assertProjectOwnership(projectId: string) {
   if (!project) {
     throw new Error("Proyecto no encontrado");
   }
+
+  return project;
 }
 
 export async function createCardAction(input: {
@@ -50,7 +52,7 @@ export async function createCardAction(input: {
   columnName: CardColumn;
   checklistItems?: string[];
 }) {
-  await assertProjectOwnership(input.projectId);
+  const project = await assertProjectOwnership(input.projectId);
 
   const parsed = cardSchema.parse(input);
 
@@ -59,6 +61,14 @@ export async function createCardAction(input: {
     .from(cards)
     .where(and(eq(cards.projectId, input.projectId), eq(cards.columnName, parsed.columnName)))
     .orderBy(asc(cards.position));
+
+  const [maxPriorityCard] = await db
+    .select({ priority: cards.priority })
+    .from(cards)
+    .innerJoin(projects, eq(cards.projectId, projects.id))
+    .where(eq(projects.userId, project.userId))
+    .orderBy(desc(cards.priority))
+    .limit(1);
 
   const cardId = randomUUID();
 
@@ -70,6 +80,7 @@ export async function createCardAction(input: {
     type: parsed.type,
     isCompleted: false,
     columnName: parsed.columnName,
+    priority: (maxPriorityCard?.priority ?? 0) + 1,
     position: existing.length,
   });
 
@@ -329,7 +340,7 @@ export async function reorderDashboardTasksAction(input: {
 
     await db
       .update(cards)
-      .set({ position: nextPriority, updatedAt: new Date() })
+      .set({ priority: nextPriority, updatedAt: new Date() })
       .where(eq(cards.id, cardId));
   }
 
